@@ -1,0 +1,269 @@
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+
+		<title>Generators - SydJs October 2013</title>
+
+		<meta name="description" content="An introduction to Generators">
+		<meta name="author" content="Patrick Roumanoff">
+
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<link rel="stylesheet" href="css/reveal.min.css">
+		<link rel="stylesheet" href="css/theme/default.css" id="theme">
+
+		<!-- For syntax highlighting -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<style>
+			body {
+				background: -webkit-radial-gradient(center, circle cover, 
+						rgb(90, 150, 220) 0%, rgb(20, 50, 80) 100%);
+    				background-color: #2b2b2b;
+  			}
+			.reveal pre {
+				font-size: 0.9em;
+				width: 100%;
+			}
+			.reveal pre code {
+				max-height: 80%;
+			}
+			.reveal h2, h3, h4 {
+				text-transform: capitalize;
+			}
+		</style>
+	</head>
+
+	<body>
+
+		<div class="reveal">
+
+			<div class="slides">
+				<section><section>
+					<h1>Generators</h1>
+					<h3>SydJS March 2015</h3>
+                  <br><br>
+                <img width="150" style="border: solid 0px white; box-shadow: 0 0 0;background-color:rgba(0,0,0,0);" src="images/avatar.png"><br>
+                Patrick Roumanoff •  Atlassian •  @pkr2
+					</p>
+				</section>
+				</section>
+				<section>
+					<section>
+						<h2>History</h2>
+						<p>1963: Melvin Conway wrote a paper about coroutines</p>
+						<p>appeared in simula, modula2, python, lua, C (with macro)<br>
+Firefox (js1.7), ES6, v8, chrome, safari</p>
+<br>
+<p>This is not new stuff!</p>
+					</section>
+					<section>
+						<h2>A Bit of Theory</h2>
+<ul><li><code>Routine</code> is main</li>
+  <li class="fragment"><code>subRoutine</code> is a function: 1 entry, 1 or more exit</li>
+  <li class="fragment"><code>coRoutine</code> is a generalisation of subRoutine<br>more than 1 entry point</li>
+<li class="fragment">Continuation, Fiber, Thread...</li></ul>
+					</section>
+					<section>
+						<h2>Iterator</h2>
+<ul>
+	<li>An iterator is something that goes in a <code>for-in</code> loop</li>
+	<li><code>_.each</code> of underscore.js</li>
+  <li><code>Array.prototype.forEach</code></li>
+	<pre class="fragment"><code>var iterator = ...;
+for(let i of iterator) {
+  // do smart stuff with i
+}</code></pre>
+	<li class="fragment">Generators are a simple way to build iterators</li>
+</ul>
+<br><br>
+	<p class="fragment">What's so special about it that we need a new version of JS?</p>
+					</section>
+					<section>
+						<h2>Generator</h2>
+<ul><li>Special <code>function * </code> syntax to define a generator</li>
+<li>generator function behaves like a constructor</li>
+<li>yield keyword to expose a return point and an entry point</li>
+<li>yield behaves like return with a twist</li></ul>
+	<pre class="fragment"><code>function *generator () {
+  yield 1; 
+  return 0;
+};
+var a = generator();
+console.log(a.next()); //{value: 1; done: false}
+console.log(a.next()); //{value: 0; done: true}
+console.log(a.next()); //{done: true}</code></pre>
+					</section>
+					<section>
+						<h2>Generator</h2>
+<ul><li>yield allow to send value in as well</li>
+<li>you can throw exception at a generator</li>
+<li>generators can throw exception at you as well</li></ul>
+	<pre class="fragment"><code>function *generator (init) {
+  var a = yield init;
+  yield a;
+  throw "go away!";
+};
+var a = generator("hello");
+console.log(a.next()); //{value: "hello"; done: false}
+console.log(a.next("SydJS")); //{value: "SydJS"; done: true}
+console.log(a.throw("u go away")); </code></pre>
+					</section>
+					<section><h2>states</h2>
+<img src="images/states.png">
+					</section>
+					<section><h2>Enough with the theory</h2>
+						<ul><li>Iterator</li>
+							<li>Callback solving</li>
+							<li>Promise</li>
+							<li>Async/await</li>
+						</ul>
+					</section></section><section>
+					<section><h2>Iterator</h2>
+Infinite sequences!
+<pre><code>function *square() {
+  var i = 1;
+  while(i++)
+    yield i*i;
+}
+
+for(let sq of square()) {
+  if(sq  &gt; 10000) break;
+  console.log(sq);
+}</code></pre>
+					</section><section><h2>Iterator</h2>
+<pre><code>function Tree(left, label, right) {
+  this.left = left;
+  this.label = label;
+  this.right = right;
+}<span class="fragment">
+function* inorder(t) {
+  if (t) {
+    yield* inorder(t.left);
+    yield t.label;
+    yield* inorder(t.right);
+  }
+}
+</span><span class="fragment">
+for (let node of inorder(tree)) {
+  //...
+}</span></code></pre>
+					</section></section>
+<section>
+<section><h2>Callback Hell</h2>
+						<pre><code>a.readFile(function (aValue) {
+  b.post(aValue, function (bValue) {
+    c.commit(function (cValue) {
+      keepGoing(aValue, bValue, cValue);
+    }
+  }
+}</code></pre>
+<p>aka pyramid of doom</p>
+					</section>
+<section><h2>The promise Solution</h2>
+<pre><code>a.readFile()
+  .then(b.post)
+  .then(c.commit)
+  .then(keepGoing)</code></pre>
+<p>but it requires your callback to cooperate</p>
+					</section>
+					<section><h2>Is the future still a promise?</h2>
+						<p>with the Q.js library</p>
+<pre><code>Q.async(function*() {
+  var aValue = yield a.readFile();
+  var bValue = yield b.post(aValue);
+  var cValue = yield c.commit(bValue);
+  keepGoing(aValue, bValue, cValue);
+})().done();</code></pre>
+					</section>
+					<section><h2>Async/Await</h2>
+<p>suspend.js(86), genrun(24)</p>
+<pre><code>suspend(function*(resume) {
+  var aValue = yield a.readFile(resume);
+  var bValue = yield b.post(aValue, resume);
+  var cValue = yield c.commit(bValue, resume);
+  keepGoing(aValue, bValue, cValue);
+})();</code></pre>
+					</section>					<section><h2>Async/Await</h2>
+<p>suspend.js(86), genrun(24)</p>
+<pre><code>suspend(function*(resume) {
+  try {
+    var aValue = yield a.readFile(resume);
+    var bValue = yield b.post(aValue, resume);
+    var cValue = yield c.commit(bValue, resume);
+    keepGoing(aValue, bValue, cValue);
+  } catch (e) {
+    // ...
+  }
+})();</code></pre>
+					</section></section>
+					<section><section>
+						<h2>Yesterday: Firefox</h2>
+						<p>since FF2 - 2006</p>
+						<img width="100%" src="images/firefox.png"></section><section>
+						<h2>Today: Chrome</h2>
+						<img width="100%" src="images/chrome.png"></section><section>
+						<h2>Today: Node</h2>
+						<img width="100%" src="images/node.png"></section><section>
+						<h2>Today: Everyone</h2>
+						<a target="_blank" href="http://traceur-compiler.googlecode.com/git/demo/repl.html#function%20*square%20()%20%7Bvar%20i%3D1%3B%20while(i%2B%2B)%20yield%20i*i%3B%7D%0Asquare().next().value%3B">Traceur</a>, the google backward compiler
+						<img width="100%" src="images/traceur.png">
+                      <span class="fragment">but also Facebook's regenerator, babel, etc.</span>
+                      </section></section>
+              <section>
+						<h2>Want more?</h2>
+							<ul>
+<li><a target="_blank" href="http://jlongster.com/A-Study-on-Solving-Callbacks-with-JavaScript-Generators">A Study on Solving Callbacks with JavaScript Generators</a> <br>by James Long <a target="_blank" href="http://www.twitter.com/jlongster">@jlongster</a></li>
+<li><a target="_blank" href="http://davidwalsh.name/es6-generators">The Basics of ES6 Generators</a> <br>by Kyle Simpson<a target="_blank" href="http://www.twitter.com/getify">@getify</a></li>
+<li><a target="_blank" href="http://flippinawesome.org/2013/06/24/what-are-generators/">What are Generators?</a><br> by Toby Ho <a target="_blank" href="http://www.twitter.com/airportyh">@airportyh</a></li>
+</ul>
+					</section>
+              <section>
+						<h2>Thank you!</h2>
+                <br>
+<br>
+<br>
+                <img width="150" style="border: solid 0px white; box-shadow: 0 0 0;background-color:rgba(0,0,0,0);" src="images/avatar.png"><br>
+                Patrick Roumanoff •  Atlassian •  @pkr2
+					</section>
+              
+			</div>
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.min.js"></script>
+
+		<script>
+			// Full list of configuration options available here:
+			// https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				controls: true,
+				progress: true,
+				history: true,
+				center: true,
+				overview: true,
+				keyboard: true,
+
+				theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
+				transition: Reveal.getQueryHash().transition || 'default', // default/cube/page/concave/zoom/linear/fade/none
+
+				// Optional libraries used to extend on reveal.js
+				dependencies: [
+					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'plugin/markdown/showdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+					{ src: 'plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
+					// { src: 'plugin/search/search.js', async: true, condition: function() { return !!document.body.classList; } }
+					// { src: 'plugin/remotes/remotes.js', async: true, condition: function() { return !!document.body.classList; } }
+				]
+			});
+		</script>
+	</body>
+</html>
